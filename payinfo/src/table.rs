@@ -25,6 +25,11 @@ pub struct Time {
     minute: u8,
 }
 
+static TABLE_ENDS: [&str; 2] = [
+    "Note: If travel between MSR stores is less than or equal to 1 hour, paid at regular in-store rate.",
+    "Note: Travel Pay is paid at the prevailing minimum wage."
+];
+
 impl EventTable {
     pub fn parse_stub(stub: &str) -> EventTable {
         let (_, tables): (bool, Vec<Vec<&str>>) =
@@ -33,12 +38,13 @@ impl EventTable {
                     if line.ends_with("Pay Details") {
                         in_table = true;
                     }
+                    // eprintln!("{in_table} -> {line}");
 
                     if in_table {
                         tables.last_mut().unwrap().push(line);
                     }
 
-                    if line.ends_with("Note: Travel Pay is paid at the prevailing minimum wage.") {
+                    if TABLE_ENDS.iter().any(|ending| line.ends_with(ending)) {
                         tables.push(vec![]);
                         in_table = false;
                     }
@@ -121,9 +127,7 @@ impl FromStr for EventTable {
             .lines()
             .skip(4)
             .map(str::trim)
-            .take_while(|line| {
-                !line.starts_with("Note: Travel Pay is paid at the prevailing minimum wage.")
-            })
+            .take_while(|line| TABLE_ENDS.iter().all(|ending| !line.starts_with(ending)))
             .collect();
 
         fn is_event_line(line: &&str) -> bool {
@@ -144,7 +148,7 @@ pub(super) mod fields {
     pub(super) const CUSTOMER: usize = 0;
     pub(super) const DATE: usize = 41;
     pub(super) const ADDER: usize = 54;
-    pub(super) const HOURS: usize = 76;
+    pub(super) const HOURS: usize = 75;
     pub(super) const MSR: usize = 89;
     pub(super) const TIME_IN: usize = 101;
     pub(super) const TIME_OUT: usize = 115;
@@ -159,10 +163,10 @@ impl FromStr for Event {
     fn from_str(event: &str) -> Result<Self, Self::Err> {
         //Ensure the event line has full width in order to avoid indexing out of bounds.
         //Fields after time_out may not exist, cutting the line off there.
-        let event = format!("{}{}", event, " ".repeat(80));
+        let event = format!("{}{}", event, " ".repeat(180));
         let chars: Vec<char> = event.chars().collect();
 
-        // println!("{event}");
+        // eprintln!("{event}");
         let name = String::from_iter(&chars.as_slice()[fields::CUSTOMER..fields::DATE]);
         let date = String::from_iter(&chars.as_slice()[fields::DATE..fields::ADDER]);
         let adder = String::from_iter(&chars.as_slice()[fields::ADDER..fields::HOURS]);
