@@ -192,7 +192,7 @@ impl FromStr for Event {
         //     &travel_return_time
         // );
 
-        let name = name.trim().to_owned();
+        let name = name.trim().replace(",", "").to_owned();
         let date = date.trim().to_owned();
         let adder = match adder.trim() {
             "" => None,

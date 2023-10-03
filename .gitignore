@@ -2,4 +2,5 @@
 *.csv
 *.txt
 *.pdf
+*.xlsx
 !readme.txt
